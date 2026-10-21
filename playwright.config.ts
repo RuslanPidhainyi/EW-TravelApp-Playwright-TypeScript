@@ -46,7 +46,7 @@ const APP_DIR = path.resolve(__dirname, process.env.APP_DIR ?? '../EW-TravelApp-
 /** Writes reports/test-ids.json and .csv - every test by its [ID: n] tag, with its outcome and product issues. */
 const TEST_ID_REPORTER = './src/reporters/testIdReporter.ts';
 
-/** Writes reports/custom-report/ - statistics per feature, filters and search, and each failed test's Markdown log, screenshot and trace. */
+/** Writes reports/custom-report/ - the test dashboard: results with filters, search and pages, logs, Markdown and run command per test, each failed test's screenshot and trace, and time per feature and project. */
 const CUSTOM_REPORTER = './src/reporters/customReport/customReporter.ts';
 
 export default defineConfig({

@@ -24,8 +24,6 @@ export interface ReportFailure {
   trace?: string;
   /** `npx playwright show-trace ...` - for a report opened from disk, where the trace viewer cannot start. */
   showTraceCommand?: string;
-  /** `npx playwright test <file>:<line> --project=<project> --ui`. */
-  uiModeCommand: string;
 }
 
 /** One test in one project. */
@@ -54,6 +52,10 @@ export interface ReportTest {
   /** The product issues annotated on the test (`specs/support/issues.ts`). */
   issues: string[];
   skipReason?: string;
+  /** stdout, then stderr, of the attempt the report shows - the failed one, else the last. Empty when it printed nothing. */
+  output: string;
+  /** `npx playwright test "<file>:<line>" --project="<project>"` - what the Run button copies. */
+  runCommand: string;
   /** Present for a failed test, and for a flaky one - its failed attempt. */
   failure?: ReportFailure;
 }
@@ -65,6 +67,10 @@ export interface ReportTagGroup {
 
 export interface ReportData {
   title: string;
+  /** The environment on the header's stub: `TEST_ENV`, else `CI` or `LOCAL`. */
+  environment: string;
+  /** The client the run tested - `use.baseURL`. Empty when no project sets one. */
+  baseUrl: string;
   startedAt: string;
   durationMs: number;
   /** Playwright's verdict on the whole run: `passed`, `failed`, `timedout` or `interrupted`. */

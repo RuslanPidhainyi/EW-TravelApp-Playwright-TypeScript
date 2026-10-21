@@ -13,11 +13,15 @@ interface CustomReporterOptions {
   outputDir?: string;
   /** The page heading. */
   title?: string;
+  /** The badge under the heading. Defaults to `TEST_ENV`, else `CI` on CI and `LOCAL` elsewhere. */
+  environment?: string;
 }
 
 type Attachment = TestResult['attachments'][number];
 
 const ID_TAG = /^@(\d+)$/;
+/** The most of a test's stdout and stderr the page keeps - a chatty test should not bloat the report. */
+const MAX_OUTPUT_LENGTH = 20_000;
 const TEMPLATE_DIR = path.join(__dirname, 'template');
 const EXTENSION_BY_CONTENT_TYPE: Partial<Record<string, string>> = {
   'image/png': '.png',
@@ -32,14 +36,15 @@ const STATUS_BY_OUTCOME: Record<ReturnType<TestCase['outcome']>, ReportStatus> =
 };
 
 /**
- * Writes `reports/custom-report/index.html` - one page to triage a run by:
+ * Writes `reports/custom-report/index.html` - one dashboard to triage a run by:
  *
- * - passed, failed and skipped tests as counts and percentages, for the whole
- *   run and per application feature (`features.ts`);
- * - the tests, filtered by status, layer and mutation tag, feature and project,
- *   and searched by `[ID: n]`, spec file name or path;
- * - for every failed test: Copy (errors, step log and output as Markdown), the
- *   screenshot Playwright took when it failed, and its trace in the trace viewer.
+ * - Results: total, passed, failed and skipped tests and the run's duration;
+ *   the tests a page at a time, filtered by status, layer and mutation tag,
+ *   feature and project, and searched by `[ID: n]`, file, tag or error. Every
+ *   test has its logs (error and output), Markdown for a bug report and the
+ *   command that runs it; a failed one also its screenshot and its trace.
+ * - Performance: counts, percentages and time per application feature
+ *   (`features.ts`), the slowest tests and the time each project took.
  *
  * Screenshots and traces are copied into `data/`, so the folder stands on its
  * own. The trace viewer needs the page served over http (`npm run report:custom`);
@@ -48,12 +53,14 @@ const STATUS_BY_OUTCOME: Record<ReturnType<TestCase['outcome']>, ReportStatus> =
 export default class CustomReporter implements Reporter {
   private readonly outputDir: string;
   private readonly title: string;
+  private readonly environment: string;
   private config?: FullConfig;
   private suite?: Suite;
 
   constructor(options: CustomReporterOptions = {}) {
     this.outputDir = path.resolve(options.outputDir ?? 'reports/custom-report');
-    this.title = options.title ?? 'EW-TravelApp test report';
+    this.title = options.title ?? 'EW-TravelApp Test Dashboard';
+    this.environment = options.environment ?? process.env.TEST_ENV ?? (process.env.CI ? 'CI' : 'LOCAL');
   }
 
   printsToStdio(): boolean {
@@ -83,6 +90,8 @@ export default class CustomReporter implements Reporter {
 
     const data: ReportData = {
       title: this.title,
+      environment: this.environment,
+      baseUrl: this.config?.projects.find((project) => project.use.baseURL)?.use.baseURL ?? '',
       startedAt: result.startTime.toISOString(),
       durationMs: result.duration,
       runStatus: result.status,
@@ -98,7 +107,7 @@ export default class CustomReporter implements Reporter {
 
     const page = path.join(this.outputDir, 'index.html');
     fs.writeFileSync(page, renderPage(data));
-    console.log(`\nCustom report: ${repoRelative(page)} - "npm run report:custom" serves it, traces included.\n`);
+    console.log(`\nTest dashboard: ${repoRelative(page)} - "npm run report:custom" serves it, traces included.\n`);
   }
 
   private toReportTest(test: TestCase, attachments: AttachmentStore): ReportTest {
@@ -113,6 +122,7 @@ export default class CustomReporter implements Reporter {
             .reverse()
             .find((attempt) => ![test.expectedStatus, 'skipped', 'interrupted'].includes(attempt.status))
         : undefined;
+    const shownAttempt = failedAttempt ?? test.results.at(-1);
 
     return {
       key: `${project} ${test.id}`,
@@ -133,6 +143,8 @@ export default class CustomReporter implements Reporter {
         outcome === 'skipped'
           ? test.annotations.find((annotation) => annotation.type === 'skip' || annotation.type === 'fixme')?.description
           : undefined,
+      output: shownAttempt ? outputOf(shownAttempt) : '',
+      runCommand: `npx playwright test "${file}:${test.location.line}" --project="${project}"`,
       failure: failedAttempt && this.toFailure(test, failedAttempt, project, feature, attachments),
     };
   }
@@ -165,9 +177,18 @@ export default class CustomReporter implements Reporter {
       screenshots,
       trace,
       showTraceCommand: trace && `npx playwright show-trace "${inRepo(trace)}"`,
-      uiModeCommand: `npx playwright test "${repoRelative(test.location.file)}:${test.location.line}" --project="${project}" --ui`,
     };
   }
+}
+
+/** stdout, then stderr under a `[stderr]` line, without ANSI colours - cut to `MAX_OUTPUT_LENGTH`. */
+function outputOf(result: TestResult): string {
+  const text = (chunks: readonly (string | Buffer)[]) => stripAnsi(chunks.map(String).join('')).trimEnd();
+  const stdout = text(result.stdout);
+  const stderr = text(result.stderr);
+  const output = [stdout, stderr && `[stderr]\n${stderr}`].filter(Boolean).join('\n\n');
+  if (output.length <= MAX_OUTPUT_LENGTH) return output;
+  return `${output.slice(0, MAX_OUTPUT_LENGTH)}\n… ${output.length - MAX_OUTPUT_LENGTH} more characters - see the Playwright HTML report.`;
 }
 
 /** Copies attachments into the report's `data/` folder, named by the SHA-1 of their content. */

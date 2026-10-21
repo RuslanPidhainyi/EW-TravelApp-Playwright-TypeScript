@@ -11,71 +11,132 @@
 </head>
 <body>
   <main class="page">
-    <header class="run-header">
-      <div>
-        <h1 id="report-title"></h1>
-        <p class="run-meta" id="run-meta"></p>
+    <header class="ticket">
+      <div class="ticket-main">
+        <div class="ticket-brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 1.5L1.5 6.75l5 2.25 2.25 5z"/><path d="M6.5 9l8-7.5"/></svg>
+          </span>
+          <div>
+            <p class="eyebrow">Test run</p>
+            <h1 id="report-title"></h1>
+          </div>
+        </div>
+        <dl class="ticket-fields" id="run-fields"></dl>
       </div>
-      <p class="run-badge" id="run-badge"></p>
+      <div class="ticket-stub">
+        <p class="eyebrow">Environment</p>
+        <p class="stub-code" id="env-code"></p>
+        <p class="run-badge" id="run-badge"></p>
+        <button type="button" class="theme-toggle" id="theme-toggle"></button>
+      </div>
     </header>
 
-    <section class="panel" aria-labelledby="summary-heading">
-      <div class="panel-head">
-        <h2 id="summary-heading">All tests</h2>
-        <ul class="legend" id="summary-legend"></ul>
-      </div>
-      <div class="tiles" id="summary-tiles"></div>
+    <section class="summary" aria-label="Run summary">
+      <div class="kpis" id="kpis"></div>
       <div class="summary-bar" id="summary-bar"></div>
     </section>
 
-    <section class="panel" aria-labelledby="features-heading">
-      <div class="panel-head">
-        <h2 id="features-heading">By feature</h2>
-        <p class="hint">Select a feature to list its tests.</p>
-      </div>
-      <div class="table-scroll">
-        <table class="features">
-          <thead>
-            <tr>
-              <th scope="col">Feature</th>
-              <th scope="col" class="num">Tests</th>
-              <th scope="col" class="num">Passed</th>
-              <th scope="col" class="num">Failed</th>
-              <th scope="col" class="num">Skipped</th>
-              <th scope="col" class="bar-col">Share</th>
-            </tr>
-          </thead>
-          <tbody id="feature-rows"></tbody>
-          <tfoot id="feature-total"></tfoot>
-        </table>
-      </div>
-    </section>
-
-    <section class="panel" aria-labelledby="tests-heading" id="tests">
-      <div class="panel-head">
-        <h2 id="tests-heading">Tests</h2>
-        <p class="hint" id="result-count" aria-live="polite"></p>
-      </div>
-      <div class="toolbar">
-        <label class="search">
-          <span class="visually-hidden">Search tests</span>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3.5 3.5"/></svg>
-          <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Search by ID (62, @62, 62 63), file name or path">
-        </label>
-        <label class="select"><span class="visually-hidden">Feature</span><select id="feature-filter"></select></label>
-        <label class="select"><span class="visually-hidden">Project</span><select id="project-filter"></select></label>
-        <label class="select"><span class="visually-hidden">Sort</span><select id="sort"></select></label>
-        <button type="button" class="button button--quiet" id="clear-filters">Clear filters</button>
-      </div>
-      <div class="filters">
-        <div class="filter-row">
-          <span class="filter-label" id="status-label">Status</span>
-          <div class="chips" id="status-chips" role="group" aria-labelledby="status-label"></div>
+    <section class="results" id="tests" aria-labelledby="results-heading">
+      <h2 class="visually-hidden" id="results-heading">Tests</h2>
+      <div class="results-top">
+        <div class="tabs" role="tablist" aria-label="View">
+          <button type="button" role="tab" class="tab" id="tab-results" data-view="results" aria-controls="view-results" aria-selected="true">Results</button>
+          <button type="button" role="tab" class="tab" id="tab-performance" data-view="performance" aria-controls="view-performance" aria-selected="false" tabindex="-1">Performance</button>
         </div>
-        <div id="tag-filters"></div>
+        <div class="results-search">
+          <label class="search">
+            <span class="visually-hidden">Search tests</span>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3.5 3.5"/></svg>
+            <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="ID, file, title, tag or error text" title="An ID (62, @62, 62 63), a file name or path (with :line), a title, tag, feature, project or error text">
+          </label>
+          <p class="result-count" id="result-count" aria-live="polite"></p>
+        </div>
       </div>
-      <ol class="test-list" id="test-list"></ol>
-      <p class="empty" id="empty" hidden>No test matches these filters.</p>
+
+      <div class="toolbar">
+        <div class="status-switch" id="status-pills" role="group" aria-label="Status"></div>
+        <label class="select"><span class="select-label">Feature</span><select id="feature-filter"></select></label>
+        <label class="select"><span class="select-label">Project</span><select id="project-filter"></select></label>
+        <label class="select results-only"><span class="select-label">Order</span><select id="sort"></select></label>
+      </div>
+      <div class="tag-row">
+        <div class="tag-filters" id="tag-filters"></div>
+        <button type="button" class="link-button" id="clear-filters">Reset filters</button>
+      </div>
+
+      <div class="view" id="view-results" role="tabpanel" aria-labelledby="tab-results">
+        <div class="pager" id="pager-top">
+          <p class="pager-showing"></p>
+          <div class="pager-controls">
+            <label class="page-size"><span>Per page</span><select id="page-size"></select></label>
+            <button type="button" class="pager-button" data-page="prev"></button>
+            <span class="page-info"></span>
+            <button type="button" class="pager-button" data-page="next"></button>
+          </div>
+        </div>
+        <ol class="test-list" id="test-list"></ol>
+        <p class="empty" id="empty" hidden>No test matches these filters.</p>
+        <div class="pager pager--bottom" id="pager-bottom">
+          <p class="pager-showing"></p>
+          <div class="pager-controls">
+            <button type="button" class="pager-button" data-page="prev"></button>
+            <span class="page-info"></span>
+            <button type="button" class="pager-button" data-page="next"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="view view--performance" id="view-performance" role="tabpanel" aria-labelledby="tab-performance" hidden>
+        <section class="perf-block" aria-labelledby="features-heading">
+          <div class="perf-head">
+            <div>
+              <h3 id="features-heading">By feature</h3>
+              <p class="hint">Select a feature to list its tests. Test time adds up every test's duration - tests run in parallel, so it exceeds the run's.</p>
+            </div>
+            <ul class="legend" id="feature-legend"></ul>
+          </div>
+          <div class="table-scroll">
+            <table class="features">
+              <thead>
+                <tr>
+                  <th scope="col">Feature</th>
+                  <th scope="col" class="num">Tests</th>
+                  <th scope="col" class="num">Passed</th>
+                  <th scope="col" class="num">Failed</th>
+                  <th scope="col" class="num">Skipped</th>
+                  <th scope="col" class="bar-col">Results</th>
+                  <th scope="col" class="num">Test time</th>
+                  <th scope="col" class="num">Average</th>
+                </tr>
+              </thead>
+              <tbody id="feature-rows"></tbody>
+              <tfoot id="feature-total"></tfoot>
+            </table>
+          </div>
+        </section>
+        <div class="perf-grid">
+          <section class="perf-block" aria-labelledby="slowest-heading">
+            <div class="perf-head">
+              <div>
+                <h3 id="slowest-heading">Slowest tests</h3>
+                <p class="hint">Every attempt together. Select one to list it.</p>
+              </div>
+            </div>
+            <ol class="hbars" id="slowest"></ol>
+          </section>
+          <section class="perf-block" aria-labelledby="projects-heading">
+            <div class="perf-head">
+              <div>
+                <h3 id="projects-heading">Test time by project</h3>
+                <p class="hint">Select a project to list its tests.</p>
+              </div>
+            </div>
+            <ol class="hbars" id="project-times"></ol>
+          </section>
+        </div>
+        <p class="empty" id="perf-empty" hidden>No test matches these filters.</p>
+      </div>
     </section>
   </main>
 
@@ -88,7 +149,7 @@
         </div>
         <button type="button" class="icon-button" data-close aria-label="Close">&times;</button>
       </div>
-      <div class="chips" id="shot-tabs"></div>
+      <div class="shot-tabs" id="shot-tabs"></div>
       <a class="shot-frame" id="shot-open" target="_blank" rel="noopener" title="Open the full-size image"><img id="shot-image" alt=""></a>
     </div>
   </dialog>

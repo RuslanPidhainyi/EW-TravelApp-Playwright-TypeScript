@@ -552,14 +552,15 @@ A run leaves three reports:
 | Report | Location | Contents |
 | --- | --- | --- |
 | **Playwright HTML report** | `playwright-report/index.html` | every test, steps, errors, screenshots, videos, traces, product-issue annotations |
-| **Custom dashboard** | `reports/custom-report/index.html` | statistics (counts and %) for the whole run and **per feature**; filters by status, layer tag, `@mutation` / `@unmutation`, feature and project; search by ID or file; *Copy* / *Screenshot* / *Trace* / *UI mode* buttons on every failed test |
+| **Custom dashboard** | `reports/custom-report/index.html` | total / passed / failed / skipped and the run's duration; **Results**: every test a page at a time, filtered by status, layer tag, `@mutation` / `@unmutation`, feature and project, searched by ID, file, tag or error, with *Logs* / *Screenshot* / *Trace* / *Markdown* / *Run*; **Performance**: counts, % and time **per feature**, the slowest tests, time per project |
 | **Table by ID** | `reports/test-ids.csv` / `.json` | ID, project, file, layer, outcome, retries, duration, product issues |
 
 About the custom dashboard (`src/reporters/customReport/`):
-- **Statistics:** a spec belongs to a feature by its path (`src/reporters/customReport/features.ts`); a new spec the map misses is counted under `Other`.
-- **Filters:** tags of one group widen the selection, the groups narrow it. The filters are kept in the URL, so a filtered view can be bookmarked.
-- **Search:** by ID (`62`, `@62`, `62 63`), spec file name or path.
-- **Per failed test:** **Copy** puts the errors with the code around them, the step log, the console output and the page snapshot on the clipboard as Markdown; **Screenshot** shows the page when the test failed (API and database tests have none); **Trace** opens the trace viewer; **UI mode** copies the command that opens the test in UI mode.
+- **Statistics:** a spec belongs to a feature by its path (`src/reporters/customReport/features.ts`); a new spec the map misses is counted under `Other`. The figures at the top filter the list by status; *Duration* opens **Performance**.
+- **Theme:** light or dark after the system; the button under the environment switches Auto / Light / Dark and the browser remembers it.
+- **Filters:** the status switch picks one status; tags of one group widen the selection, the groups narrow it. The view, the filters and the page are kept in the URL, so a filtered view can be bookmarked.
+- **Search:** by ID (`62`, `@62`, `62 63`), spec file name or path (`file:line` finds one test), or text in the title, a tag, the feature, the project or the error.
+- **Per test:** **Logs** opens the error and the console output; **Markdown** puts the test on the clipboard as Markdown - for a failed test with the errors and the code around them, the step log, the output and the page snapshot; **Run** copies `npx playwright test "<file>:<line>" --project="<project>"` (add `--ui` for UI mode). **Screenshot** shows the page when the test failed (greyed out for a passed test and for API and database tests) and **Trace** opens the trace viewer - Playwright keeps both for failed attempts only.
 
 A test that caught a product defect carries it as an `issue` annotation (`specs/support/issues.ts`), which the HTML
 report and `reports/test-ids.*` show as well. `npm run test:all` and CI write all of these from the merged report.
@@ -578,7 +579,7 @@ report and `reports/test-ids.*` show as well. `npm run test:all` and CI write al
 **Custom dashboard**
 1. Go to `Automation-TypeScript\reports\custom-report\`.
 2. Double-click `index.html`.
-3. At the top: the statistics and the *By feature* table; below them, the filters and search. Next to a failed test: *Copy* / *Screenshot* / *Trace* / *UI mode*. Opened from disk, *Trace* only copies a `show-trace` command.
+3. At the top: the run and its environment, then the totals; below them, *Results* with the search, the filters and the tests, 50 to a page; *Performance* holds the *By feature* table and the time. Under each test: *Logs* / *Screenshot* / *Trace* / *Markdown* / *Run*. Opened from disk, *Trace* only copies a `show-trace` command.
 
 **Table:** open `Automation-TypeScript\reports\test-ids.csv` in Excel.
 
